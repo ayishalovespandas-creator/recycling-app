@@ -1,0 +1,2 @@
+# recycling-app
+ai project
