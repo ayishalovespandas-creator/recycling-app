@@ -174,15 +174,6 @@ import subprocess
 import time
 from pyngrok import ngrok, process
 
-# 1. Forcefully kill all active processes and clear session states
-!pkill -9 -f streamlit
-!pkill -9 -f ngrok
-
-try:
-    ngrok.kill()
-except Exception:
-    pass
-
 # 2. Re-authenticate explicitly
 NGROK_TOKEN = "3J7aC1ZygLyoEu7gaqG2KENAh9H_6gqUDJT7RR7YyaFWcpc8w"  # <--- Replace with your token
 ngrok.set_auth_token(NGROK_TOKEN)
