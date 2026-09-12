@@ -26,7 +26,7 @@ def load_corrections():
     if os.path.exists(FEEDBACK_FILE):
          with open(FEEDBACK_FILE, "r") as f:
              return json.load(f)
-     return []
+    return []
 
 def save_correction(corrected_name, raw_label):
      corrections = load_corrections()
