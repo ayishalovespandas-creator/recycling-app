@@ -172,7 +172,7 @@ with col2:
 import os
 import subprocess
 import time
-from pyngrok import ngrok, process
+
 
 # 2. Re-authenticate explicitly
 NGROK_TOKEN = "3J7aC1ZygLyoEu7gaqG2KENAh9H_6gqUDJT7RR7YyaFWcpc8w"  # <--- Replace with your token
