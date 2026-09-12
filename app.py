@@ -9,38 +9,37 @@ Original file is located at
 
 
 # Commented out IPython magic to ensure Python compatibility.
- 
- import json
- import os
- import streamlit as st
- from PIL import Image
- from groq import Groq
- from transformers import pipeline
+import json
+import os
+import streamlit as st
+from PIL import Image
+from groq import Groq
+from transformers import pipeline
 
 # # 1. Page Configuration
- st.set_page_config(page_title="AI Material Classifier", page_icon="♻️", layout="wide")
+st.set_page_config(page_title="AI Material Classifier", page_icon="♻️", layout="wide")
 # 
 # # Local feedback store
- FEEDBACK_FILE = "corrections.json"
+FEEDBACK_FILE = "corrections.json"
 # 
- def load_corrections():
-     if os.path.exists(FEEDBACK_FILE):
+def load_corrections():
+    if os.path.exists(FEEDBACK_FILE):
          with open(FEEDBACK_FILE, "r") as f:
              return json.load(f)
      return []
 
- def save_correction(corrected_name, raw_label):
+def save_correction(corrected_name, raw_label):
      corrections = load_corrections()
      corrections.append({"detected": raw_label, "user_correction": corrected_name})
      with open(FEEDBACK_FILE, "w") as f:
          json.dump(corrections, f, indent=2)
  
  # 2. Setup Groq Client
- GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
- client = Groq(api_key=GROQ_API_KEY)
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+client = Groq(api_key=GROQ_API_KEY)
  
  # 3. Model Setup
- RECYCLING_LABELS = [
+RECYCLING_LABELS = [
      "plastic bottle or jug",
      "plastic container or food tub",
      "aluminum soda can or tin container",
@@ -53,24 +52,24 @@ Original file is located at
      "styrofoam or non-recyclable plastic"
  ]
  
- @st.cache_resource
- def load_clip_classifier():
+@st.cache_resource
+def load_clip_classifier():
      return pipeline("zero-shot-image-classification", model="openai/clip-vit-base-patch32")
  
- classifier = load_clip_classifier()
+classifier = load_clip_classifier()
  
  # 4. Session State Setup
- if "history" not in st.session_state:
+if "history" not in st.session_state:
      st.session_state.history = []
- if "current_analysis" not in st.session_state:
+if "current_analysis" not in st.session_state:
      st.session_state.current_analysis = None
  
  # 5. UI Layout
- st.title("♻️ Smart Material Classifier & Recycling Expert")
+st.title("♻️ Smart Material Classifier & Recycling Expert")
  
- col1, col2 = st.columns([1, 1])
+col1, col2 = st.columns([1, 1])
  
- with col1:
+with col1:
      user_location = st.text_input("📍 Your City or Postal Code:", placeholder="e.g., Austin, TX")
      img_file = st.file_uploader("📷 Choose a photo...", type=["jpg", "jpeg", "png"])
      camera_file = st.camera_input("...or capture live")
@@ -85,7 +84,7 @@ Original file is located at
          st.image(input_image, caption="Uploaded Preview", use_container_width=True)
          analyze_btn = st.button("🔍 Analyze Material", type="primary", use_container_width=True)
  
- with col2:
+with col2:
      if input_image and analyze_btn:
          with st.spinner("Analyzing image..."):
              raw_image = input_image.convert("RGB")
