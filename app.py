@@ -169,20 +169,8 @@ with col2:
  
          st.markdown(response.choices[0].message.content)
 
-import os
-import subprocess
-import time
 
 
-# 2. Re-authenticate explicitly
-NGROK_TOKEN = "3J7aC1ZygLyoEu7gaqG2KENAh9H_6gqUDJT7RR7YyaFWcpc8w"  # <--- Replace with your token
-ngrok.set_auth_token(NGROK_TOKEN)
 
-# 3. Start Streamlit in the background
-subprocess.Popen([
-    "streamlit", "run", "app.py",
-    "--server.port", "8501",
-    "--server.address", "127.0.0.1"
-])
 
 
