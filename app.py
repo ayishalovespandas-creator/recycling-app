@@ -7,169 +7,168 @@ Original file is located at
     https://colab.research.google.com/drive/1LGcc9lvCm0CU2JuABI-uqNao7P2S20pu
 """
 
-!pip install -q pyngrok groq streamlit pillow transformers torch
 
 # Commented out IPython magic to ensure Python compatibility.
-# %%writefile app.py
-# import json
-# import os
-# import streamlit as st
-# from PIL import Image
-# from groq import Groq
-# from transformers import pipeline
-# 
+ %%writefile app.py
+ import json
+ import os
+ import streamlit as st
+ from PIL import Image
+ from groq import Groq
+ from transformers import pipeline
+
 # # 1. Page Configuration
-# st.set_page_config(page_title="AI Material Classifier", page_icon="♻️", layout="wide")
+ st.set_page_config(page_title="AI Material Classifier", page_icon="♻️", layout="wide")
 # 
 # # Local feedback store
-# FEEDBACK_FILE = "corrections.json"
+ FEEDBACK_FILE = "corrections.json"
 # 
-# def load_corrections():
-#     if os.path.exists(FEEDBACK_FILE):
-#         with open(FEEDBACK_FILE, "r") as f:
-#             return json.load(f)
-#     return []
-# 
-# def save_correction(corrected_name, raw_label):
-#     corrections = load_corrections()
-#     corrections.append({"detected": raw_label, "user_correction": corrected_name})
-#     with open(FEEDBACK_FILE, "w") as f:
-#         json.dump(corrections, f, indent=2)
-# 
-# # 2. Setup Groq Client
-# GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
-# client = Groq(api_key=GROQ_API_KEY)
-# 
-# # 3. Model Setup
-# RECYCLING_LABELS = [
-#     "plastic bottle or jug",
-#     "plastic container or food tub",
-#     "aluminum soda can or tin container",
-#     "glass bottle or glass jar",
-#     "cardboard box or paper package",
-#     "electronic waste or battery or appliance",
-#     "metal scrap or tool",
-#     "textile or clothing or fabric",
-#     "organic food waste or compost",
-#     "styrofoam or non-recyclable plastic"
-# ]
-# 
-# @st.cache_resource
-# def load_clip_classifier():
-#     return pipeline("zero-shot-image-classification", model="openai/clip-vit-base-patch32")
-# 
-# classifier = load_clip_classifier()
-# 
-# # 4. Session State Setup
-# if "history" not in st.session_state:
-#     st.session_state.history = []
-# if "current_analysis" not in st.session_state:
-#     st.session_state.current_analysis = None
-# 
-# # 5. UI Layout
-# st.title("♻️ Smart Material Classifier & Recycling Expert")
-# 
-# col1, col2 = st.columns([1, 1])
-# 
-# with col1:
-#     user_location = st.text_input("📍 Your City or Postal Code:", placeholder="e.g., Austin, TX")
-#     img_file = st.file_uploader("📷 Choose a photo...", type=["jpg", "jpeg", "png"])
-#     camera_file = st.camera_input("...or capture live")
-# 
-#     input_image = None
-#     if img_file:
-#         input_image = Image.open(img_file)
-#     elif camera_file:
-#         input_image = Image.open(camera_file)
-# 
-#     if input_image:
-#         st.image(input_image, caption="Uploaded Preview", use_container_width=True)
-#         analyze_btn = st.button("🔍 Analyze Material", type="primary", use_container_width=True)
-# 
-# with col2:
-#     if input_image and analyze_btn:
-#         with st.spinner("Analyzing image..."):
-#             raw_image = input_image.convert("RGB")
-#             predictions = classifier(raw_image, candidate_labels=RECYCLING_LABELS)
-# 
-#             top_label = predictions[0]['label']
-#             top_score = predictions[0]['score'] * 100
-# 
-#             st.session_state.current_analysis = {
-#                 "top_label": top_label,
-#                 "top_score": top_score,
-#                 "image": input_image
-#             }
-# 
-#     # Display Analysis & Correction Controls
-#     if st.session_state.current_analysis:
-#         analysis = st.session_state.current_analysis
-#         st.success(f"🎯 **Detected Item:** {analysis['top_label'].title()} ({analysis['top_score']:.1f}% match)")
-# 
-#         # --- FEEDBACK & CORRECTION COMPONENT ---
-#         st.write("---")
-#         st.write("Is this identification correct?")
-#         feedback_col1, feedback_col2 = st.columns(2)
-# 
-#         with feedback_col1:
-#             if st.button("👍 Yes, Correct", use_container_width=True):
-#                 st.toast("Thanks for verifying! Memory confirmed.", icon="✅")
-# 
-#         with feedback_col2:
-#             is_incorrect = st.button("❌ No, Correct It", use_container_width=True)
-# 
-#         # Display override field if user marks as incorrect
-#         user_override = st.text_input(
-#             "What is the actual item name or material?",
-#             placeholder="e.g., Polypropylene #5 Takeout Container"
-#         )
-# 
-#         if user_override and st.button("💾 Submit Correction"):
-#             save_correction(user_override, analysis['top_label'])
-#             st.success(f"Saved! Future prompts will incorporate user memory for '{user_override}'.")
-#             # Update local display state
-#             analysis['top_label'] = user_override
-# 
-#         # --- GENERATE RECYCLING INSTRUCTIONS ---
-#         past_corrections = load_corrections()
-#         correction_context = ""
-#         if past_corrections:
-#             recent_overrides = ", ".join([f"'(Original: {c['detected']} -> Correction: {c['user_correction']})'" for c in past_corrections[-3:]])
-#             correction_context = f"\nUSER CORRECTION MEMORY: Note that users previously corrected similar classifications: {recent_overrides}."
-# 
-#         prompt = f"""
-#         Act as a Materials Engineer and Recycling Specialist.
-#         Item identified as: "{analysis['top_label']}".
-#         User Location: {user_location if user_location else "General Global Standard"}
-#         {correction_context}
-# 
-#         Provide the analysis in this structured format:
-# 
-#         ### 🧪 1. Material Identification
-#         * **Item Name:** {analysis['top_label']}
-#         * **Material Composition:** [e.g. PET Plastic #1, Corrugated Cardboard, Aluminum]
-#         * **Recyclability Tier:** [Curbside Eligible / Special Drop-off Only / Non-Recyclable]
-# 
-#         ---
-# 
-#         ### ⚙️ 2. Processing & Preparation
-#         * **Cleaning Required:** [e.g., Rinse oil residues, strip plastic film]
-#         * **Separation Steps:** [e.g., Separate cap from bottle]
-#         * **Creative Reuse (Upcycling):** [1 practical DIY way to reuse this item at home]
-# 
-#         ---
-# 
-#         ### 📍 3. Facility Guidance
-#         * **Recommended Facility Types:** Provide 2-3 facility types or locations ideal for this item.
-#         """
-# 
-#         response = client.chat.completions.create(
-#             model="openai/gpt-oss-120b",
-#             messages=[{"role": "user", "content": prompt}],
-#             temperature=0.1
-#         )
-# 
-#         st.markdown(response.choices[0].message.content)
+ def load_corrections():
+     if os.path.exists(FEEDBACK_FILE):
+         with open(FEEDBACK_FILE, "r") as f:
+             return json.load(f)
+     return []
+
+ def save_correction(corrected_name, raw_label):
+     corrections = load_corrections()
+     corrections.append({"detected": raw_label, "user_correction": corrected_name})
+     with open(FEEDBACK_FILE, "w") as f:
+         json.dump(corrections, f, indent=2)
+ 
+ # 2. Setup Groq Client
+ GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+ client = Groq(api_key=GROQ_API_KEY)
+ 
+ # 3. Model Setup
+ RECYCLING_LABELS = [
+     "plastic bottle or jug",
+     "plastic container or food tub",
+     "aluminum soda can or tin container",
+     "glass bottle or glass jar",
+     "cardboard box or paper package",
+     "electronic waste or battery or appliance",
+     "metal scrap or tool",
+     "textile or clothing or fabric",
+     "organic food waste or compost",
+     "styrofoam or non-recyclable plastic"
+ ]
+ 
+ @st.cache_resource
+ def load_clip_classifier():
+     return pipeline("zero-shot-image-classification", model="openai/clip-vit-base-patch32")
+ 
+ classifier = load_clip_classifier()
+ 
+ # 4. Session State Setup
+ if "history" not in st.session_state:
+     st.session_state.history = []
+ if "current_analysis" not in st.session_state:
+     st.session_state.current_analysis = None
+ 
+ # 5. UI Layout
+ st.title("♻️ Smart Material Classifier & Recycling Expert")
+ 
+ col1, col2 = st.columns([1, 1])
+ 
+ with col1:
+     user_location = st.text_input("📍 Your City or Postal Code:", placeholder="e.g., Austin, TX")
+     img_file = st.file_uploader("📷 Choose a photo...", type=["jpg", "jpeg", "png"])
+     camera_file = st.camera_input("...or capture live")
+ 
+     input_image = None
+     if img_file:
+         input_image = Image.open(img_file)
+     elif camera_file:
+         input_image = Image.open(camera_file)
+ 
+     if input_image:
+         st.image(input_image, caption="Uploaded Preview", use_container_width=True)
+         analyze_btn = st.button("🔍 Analyze Material", type="primary", use_container_width=True)
+ 
+ with col2:
+     if input_image and analyze_btn:
+         with st.spinner("Analyzing image..."):
+             raw_image = input_image.convert("RGB")
+             predictions = classifier(raw_image, candidate_labels=RECYCLING_LABELS)
+ 
+             top_label = predictions[0]['label']
+             top_score = predictions[0]['score'] * 100
+ 
+             st.session_state.current_analysis = {
+                 "top_label": top_label,
+                 "top_score": top_score,
+                 "image": input_image
+             }
+ 
+    # Display Analysis & Correction Controls
+     if st.session_state.current_analysis:
+         analysis = st.session_state.current_analysis
+         st.success(f"🎯 **Detected Item:** {analysis['top_label'].title()} ({analysis['top_score']:.1f}% match)")
+ 
+        # --- FEEDBACK & CORRECTION COMPONENT ---
+         st.write("---")
+         st.write("Is this identification correct?")
+         feedback_col1, feedback_col2 = st.columns(2)
+ 
+         with feedback_col1:
+             if st.button("👍 Yes, Correct", use_container_width=True):
+                 st.toast("Thanks for verifying! Memory confirmed.", icon="✅")
+ 
+         with feedback_col2:
+             is_incorrect = st.button("❌ No, Correct It", use_container_width=True)
+ 
+     # Display override field if user marks as incorrect
+         user_override = st.text_input(
+             "What is the actual item name or material?",
+             placeholder="e.g., Polypropylene #5 Takeout Container"
+         )
+ 
+         if user_override and st.button("💾 Submit Correction"):
+             save_correction(user_override, analysis['top_label'])
+             st.success(f"Saved! Future prompts will incorporate user memory for '{user_override}'.")
+            # Update local display state
+             analysis['top_label'] = user_override
+ 
+
+         past_corrections = load_corrections()
+         correction_context = ""
+         if past_corrections:
+             recent_overrides = ", ".join([f"'(Original: {c['detected']} -> Correction: {c['user_correction']})'" for c in past_corrections[-3:]])
+             correction_context = f"\nUSER CORRECTION MEMORY: Note that users previously corrected similar classifications: {recent_overrides}."
+ 
+         prompt = f"""
+         Act as a Materials Engineer and Recycling Specialist.
+         Item identified as: "{analysis['top_label']}".
+         User Location: {user_location if user_location else "General Global Standard"}
+         {correction_context}
+ 
+         Provide the analysis in this structured format:
+ 
+         ### 🧪 1. Material Identification
+         * **Item Name:** {analysis['top_label']}
+         * **Material Composition:** [e.g. PET Plastic #1, Corrugated Cardboard, Aluminum]
+         * **Recyclability Tier:** [Curbside Eligible / Special Drop-off Only / Non-Recyclable]
+ 
+         ---
+ 
+         ### ⚙️ 2. Processing & Preparation
+         * **Cleaning Required:** [e.g., Rinse oil residues, strip plastic film]
+         * **Separation Steps:** [e.g., Separate cap from bottle]
+         * **Creative Reuse (Upcycling):** [1 practical DIY way to reuse this item at home]
+ 
+         ---
+ 
+         ### 📍 3. Facility Guidance
+         * **Recommended Facility Types:** Provide 2-3 facility types or locations ideal for this item.
+         """
+ 
+         response = client.chat.completions.create(
+             model="openai/gpt-oss-120b",
+             messages=[{"role": "user", "content": prompt}],
+             temperature=0.1
+         )
+ 
+         st.markdown(response.choices[0].message.content)
 
 import os
 import subprocess
@@ -196,14 +195,4 @@ subprocess.Popen([
     "--server.address", "127.0.0.1"
 ])
 
-# Give Streamlit 5 seconds to bind to port 8501
-time.sleep(5)
 
-# 4. Open a clean tunnel
-try:
-    public_url = ngrok.connect(8501)
-    print("✅ App successfully re-connected!")
-    print("👉 Access here:", public_url)
-except Exception as e:
-    print("❌ Failed to open tunnel. Error details:")
-    print(e)
